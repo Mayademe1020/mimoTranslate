@@ -1,0 +1,27 @@
+# MiMo Voice — Python Dependencies
+# ================================
+
+# Core API client
+requests>=2.31.0
+httpx>=0.25.0           # Alternative async HTTP client
+
+# Audio processing
+pydub>=0.25.1           # Audio format conversion
+soundfile>=0.12.0       # WAV file handling
+numpy>=1.24.0           # Audio processing
+
+# Speech-to-Text (Whisper)
+faster-whisper>=0.10.0  # 4x faster Whisper implementation
+# whisper-streaming      # Real-time streaming (installed from GitHub)
+
+# Configuration
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Utilities
+tqdm>=4.65.0            # Progress bars
+rich>=13.0.0            # Terminal formatting

@@ -1,0 +1,113 @@
+# MiMo Voice — Configuration
+# =========================
+
+# API Settings
+api:
+  base_url: "https://api.xiaomimimo.com/v1"
+  key_env: "MIMO_API_KEY"  # Environment variable name
+  
+# Models
+models:
+  translation: "mimo-v2.5-pro"
+  tts: "mimo-v2-tts"
+  omni: "mimo-v2.5-omni"
+
+# Language Settings
+languages:
+  source: "en"
+  target: "ja"
+  auto_detect: true
+
+# Context Engine
+context:
+  auto_detect: true
+  default_situation: "general"
+  default_domain: "general"
+  default_politeness: "casual"
+  
+  # GPS-based context (future)
+  gps:
+    enabled: false
+
+# Streaming
+streaming:
+  enabled: true
+  whisper_model: "large-v3"
+  chunk_duration_ms: 3000  # 3 second chunks
+  overlap_ms: 500
+
+# Camera Mode
+camera:
+  enabled: true
+  auto_detect_allergens: true
+  user_allergens: []
+  supported_formats:
+    - "jpg"
+    - "jpeg"
+    - "png"
+    - "webp"
+
+# Performance
+performance:
+  translation_timeout: 30
+  tts_timeout: 15
+  omni_timeout: 60
+  max_retries: 3
+
+# Domain Modes
+domains:
+  medical:
+    enabled: true
+    keywords:
+      - "doctor"
+      - "hospital"
+      - "medicine"
+      - "pain"
+      - "prescription"
+      - "allergic"
+  
+  legal:
+    enabled: true
+    keywords:
+      - "contract"
+      - "agreement"
+      - "court"
+      - "legal"
+      - "lawyer"
+  
+  business:
+    enabled: true
+    keywords:
+      - "meeting"
+      - "office"
+      - "business"
+      - "contract"
+      - "deadline"
+  
+  travel:
+    enabled: true
+    keywords:
+      - "hotel"
+      - "restaurant"
+      - "airport"
+      - "taxi"
+      - "directions"
+
+# Emergency Mode
+emergency:
+  enabled: true
+  auto_detect: true
+  keywords:
+    - "help"
+    - "emergency"
+    - "ambulance"
+    - "police"
+    - "fire"
+  pre_translated_phrases: true
+
+# Output
+output:
+  audio_format: "wav"
+  sample_rate: 24000
+  save_translations: true
+  translations_dir: "./translations"
