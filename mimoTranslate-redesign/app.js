@@ -1,23 +1,17 @@
 // ============================================================
-// MiMo Travel Buddy — Dashboard-First
-// Everything visible. Nothing hidden. Proactive, not reactive.
+// MiMo Travel Buddy — Travel-First
+// Your companion, not your alarm system.
 // ============================================================
 
 // ---- Utilities ----
-function escHtml(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
-function escAttr(s) {
-    return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function escAttr(s) { return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function showToast(msg) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.classList.add('visible');
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => toast.classList.remove('visible'), 2500);
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('visible');
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('visible'), 2500);
 }
 function getGreeting() {
     const h = new Date().getHours();
@@ -26,45 +20,20 @@ function getGreeting() {
     return 'Good evening';
 }
 
-// ---- Sound System ----
+// ---- Sound ----
 const Sound = {
     ctx: null,
     enabled: localStorage.getItem('sound_enabled') === 'true',
-    init() {
-        if (this.ctx) return;
-        try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
-    },
+    init() { if (!this.ctx) try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} },
     play(type) {
         if (!this.enabled || !this.ctx) return;
         try {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            const now = this.ctx.currentTime;
-            switch(type) {
-                case 'send':
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(600, now);
-                    gain.gain.setValueAtTime(0.06, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                    osc.start(now); osc.stop(now + 0.08);
-                    break;
-                case 'receive':
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(800, now);
-                    gain.gain.setValueAtTime(0.06, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-                    osc.start(now); osc.stop(now + 0.12);
-                    break;
-                case 'error':
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(200, now);
-                    gain.gain.setValueAtTime(0.06, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-                    osc.start(now); osc.stop(now + 0.15);
-                    break;
-            }
+            const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+            o.connect(g); g.connect(this.ctx.destination);
+            const n = this.ctx.currentTime;
+            if (type === 'send') { o.type = 'sine'; o.frequency.setValueAtTime(600, n); g.gain.setValueAtTime(0.06, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.08); o.start(n); o.stop(n + 0.08); }
+            else if (type === 'receive') { o.type = 'sine'; o.frequency.setValueAtTime(800, n); g.gain.setValueAtTime(0.06, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.12); o.start(n); o.stop(n + 0.12); }
+            else if (type === 'error') { o.type = 'sawtooth'; o.frequency.setValueAtTime(200, n); g.gain.setValueAtTime(0.06, n); g.gain.exponentialRampToValueAtTime(0.001, n + 0.15); o.start(n); o.stop(n + 0.15); }
         } catch(e) {}
     },
     toggle() {
@@ -81,8 +50,7 @@ document.addEventListener('click', () => Sound.init(), { once: true });
 const savedTheme = localStorage.getItem('theme') || 'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 function updateThemeUI() {
-    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    document.getElementById('themeIcon').textContent = dark ? '☀️' : '🌙';
+    document.getElementById('themeIcon').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
 }
 updateThemeUI();
 
@@ -90,10 +58,9 @@ updateThemeUI();
 const state = {
     destination: JSON.parse(localStorage.getItem('mimo_destination') || 'null'),
     lastTranslation: null,
-    lastContext: 'general',
+    lastContext: 'restaurant',
     medical: JSON.parse(localStorage.getItem('medicalProfile') || '{}'),
     history: JSON.parse(localStorage.getItem('translationHistory') || '[]'),
-    practiceCount: JSON.parse(localStorage.getItem('practiceCount') || '{}'),
     tipsDismissed: localStorage.getItem('tipsDismissed') === 'true',
 };
 
@@ -131,7 +98,7 @@ const CULTURAL_TIPS = {
     ru: ["Shake hands firmly, make eye contact", "Don't whistle indoors", "Bring an odd number of flowers for gifts", "Dress well for any occasion"],
 };
 
-// ---- Quick Phrases by Context ----
+// ---- Quick Phrases ----
 const QUICK_PHRASES = {
     restaurant: [
         { label: '📋 Menu', text: 'Can I see the menu?' },
@@ -146,36 +113,43 @@ const QUICK_PHRASES = {
         { label: '🚕 Taxi', text: 'Where can I find a taxi?' },
         { label: '🎫 Boarding', text: 'When does boarding start?' },
         { label: '🧳 Luggage', text: 'Where is baggage claim?' },
-        { label: '🛂 Passport', text: 'Where is passport control?' },
     ],
     hotel: [
         { label: '🔑 Check in', text: 'I have a reservation' },
         { label: '📶 WiFi', text: 'What is the WiFi password?' },
-        { label: '🧹 Cleaning', text: 'Can I get room service?' },
+        { label: '🧹 Room service', text: 'Can I get room service?' },
         { label: '❄️ AC', text: 'Can you turn up the AC?' },
     ],
     shopping: [
         { label: '💰 Price?', text: 'How much does this cost?' },
         { label: '📏 Size', text: 'Do you have this in my size?' },
-        { label: '💳 Pay', text: 'Can I pay by card?' },
+        { label: '💳 Card', text: 'Can I pay by card?' },
         { label: '🔄 Return', text: 'Can I return this?' },
     ],
-    street: [
+    transport: [
         { label: '🗺️ Where?', text: 'Where is this place?' },
-        { label: '🚇 Metro', text: 'Where is the nearest metro station?' },
+        { label: '🚇 Metro', text: 'Where is the nearest metro?' },
         { label: '🚕 Taxi', text: 'Can you call me a taxi?' },
         { label: '📍 Lost', text: 'I am lost, can you help?' },
     ],
-    emergency: [
-        { label: '🆘 Help', text: 'I need help' },
-        { label: '🚑 Ambulance', text: 'I need an ambulance' },
-        { label: '👮 Police', text: 'I need the police' },
-        { label: '📍 Lost', text: 'I am lost' },
-        { label: '🔥 Fire', text: 'Fire!' },
+    social: [
+        { label: '👋 Hello', text: 'Hello!' },
+        { label: '🙏 Thank you', text: 'Thank you very much' },
+        { label: '😊 Please', text: 'Please' },
+        { label: '👋 Goodbye', text: 'Goodbye!' },
     ],
 };
 
-// ---- First Hour Phrases ----
+const CONTEXT_META = {
+    restaurant: { icon: '🍽️', title: 'At a restaurant?' },
+    airport: { icon: '✈️', title: 'At the airport?' },
+    hotel: { icon: '🏨', title: 'At your hotel?' },
+    shopping: { icon: '🛒', title: 'Shopping?' },
+    transport: { icon: '🗺️', title: 'Getting around?' },
+    social: { icon: '👋', title: 'Meeting people?' },
+};
+
+// ---- First Hour ----
 const FIRST_HOUR = {
     ja: [
         { local: 'すみません', en: 'Excuse me' },
@@ -208,23 +182,23 @@ const FIRST_HOUR = {
 };
 
 // ============================================================
-// DASHBOARD INIT
+// DASHBOARD
 // ============================================================
 
 function initDashboard() {
-    const welcomeSection = document.getElementById('welcomeSection');
-    const dashboardContent = document.getElementById('dashboardContent');
-    const bottomBar = document.getElementById('bottomBar');
+    const welcome = document.getElementById('welcomeSection');
+    const content = document.getElementById('dashboardContent');
+    const bar = document.getElementById('bottomBar');
 
     if (state.destination) {
-        welcomeSection.style.display = 'none';
-        dashboardContent.style.display = 'block';
-        bottomBar.style.display = 'flex';
+        welcome.style.display = 'none';
+        content.style.display = 'flex';
+        bar.style.display = 'flex';
         renderDashboard();
     } else {
-        welcomeSection.style.display = 'block';
-        dashboardContent.style.display = 'none';
-        bottomBar.style.display = 'none';
+        welcome.style.display = 'flex';
+        content.style.display = 'none';
+        bar.style.display = 'none';
         renderDestPicker();
     }
 }
@@ -242,6 +216,8 @@ function renderDestPicker() {
 function selectDestination(langCode) {
     state.destination = langCode;
     localStorage.setItem('mimo_destination', JSON.stringify(langCode));
+    state.tipsDismissed = false;
+    localStorage.removeItem('tipsDismissed');
     initDashboard();
 }
 
@@ -249,42 +225,23 @@ function renderDashboard() {
     const lang = LANGUAGES[state.destination];
     if (!lang) return;
 
-    // Header
     document.getElementById('topbarFlag').textContent = lang.flag;
     document.getElementById('topbarCountry').textContent = `${lang.country} · ${lang.name}`;
     document.getElementById('greeting').textContent = `${getGreeting()} in ${lang.city}!`;
 
-    renderEmergency();
-    renderContextPhrases();
-    renderCulturalTips();
-    renderPracticePrompt();
-    checkPracticePrompt();
+    renderContext();
+    renderTips();
+    checkPractice();
 }
 
-// ---- Emergency Card ----
-function renderEmergency() {
-    // Already visible as static HTML
-}
+// ---- Context ----
+function renderContext(context) {
+    const ctx = context || state.lastContext || 'restaurant';
+    const phrases = QUICK_PHRASES[ctx] || QUICK_PHRASES.restaurant;
+    const meta = CONTEXT_META[ctx] || CONTEXT_META.restaurant;
 
-// ---- Context Quick Phrases ----
-function renderContextPhrases() {
-    // Default to restaurant context
-    setContext('restaurant');
-}
-
-function setContext(context) {
-    const phrases = QUICK_PHRASES[context] || QUICK_PHRASES.restaurant;
-    const contextLabels = {
-        restaurant: { icon: '🍽️', title: 'Restaurant detected' },
-        airport: { icon: '✈️', title: 'Airport mode' },
-        hotel: { icon: '🏨', title: 'Hotel mode' },
-        shopping: { icon: '🛒', title: 'Shopping mode' },
-        street: { icon: '🗺️', title: 'Getting around' },
-        emergency: { icon: '🆘', title: 'Emergency' },
-    };
-    const info = contextLabels[context] || contextLabels.restaurant;
-    document.getElementById('contextIcon').textContent = info.icon;
-    document.getElementById('contextTitle').textContent = info.title;
+    document.getElementById('contextIcon').textContent = meta.icon;
+    document.getElementById('contextTitle').textContent = meta.title;
 
     const container = document.getElementById('contextPhrases');
     container.innerHTML = phrases.map(p =>
@@ -292,109 +249,115 @@ function setContext(context) {
     ).join('');
 
     container.querySelectorAll('.context-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            openChatWithContext(btn.dataset.text);
-        });
+        btn.addEventListener('click', () => openChatWith(btn.dataset.text));
     });
 }
 
-// ---- Cultural Tips ----
-function renderCulturalTips() {
-    const lang = state.destination;
-    const tips = CULTURAL_TIPS[lang] || [];
-    const tipsSection = document.getElementById('tipsSection');
-    const tipsList = document.getElementById('tipsList');
+// Context switcher
+document.getElementById('contextSwitch').addEventListener('click', () => {
+    const modal = document.getElementById('contextModal');
+    const options = document.getElementById('contextOptions');
+    options.innerHTML = Object.entries(CONTEXT_META).map(([key, meta]) =>
+        `<button class="context-option" data-ctx="${key}">
+            <span class="context-option-icon">${meta.icon}</span>
+            ${meta.title.replace('?', '')}
+        </button>`
+    ).join('');
+
+    options.querySelectorAll('.context-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.lastContext = btn.dataset.ctx;
+            renderContext(btn.dataset.ctx);
+            modal.classList.remove('active');
+        });
+    });
+
+    modal.classList.add('active');
+});
+document.getElementById('closeContext').addEventListener('click', () => {
+    document.getElementById('contextModal').classList.remove('active');
+});
+document.getElementById('contextModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('contextModal')) {
+        document.getElementById('contextModal').classList.remove('active');
+    }
+});
+
+// ---- Tips ----
+function renderTips() {
+    const tips = CULTURAL_TIPS[state.destination] || [];
+    const section = document.getElementById('tipsSection');
 
     if (state.tipsDismissed || tips.length === 0) {
-        tipsSection.style.display = 'none';
+        section.style.display = 'none';
         return;
     }
 
-    tipsSection.style.display = 'block';
-    tipsList.innerHTML = tips.map(t => `<li>${escHtml(t)}</li>`).join('');
+    section.style.display = 'block';
+    document.getElementById('tipsList').innerHTML = tips.map(t => `<li>${escHtml(t)}</li>`).join('');
 }
 
-// ---- Practice Prompt ----
-function renderPracticePrompt() {
-    // Will be shown dynamically
-    document.getElementById('practiceSection').style.display = 'none';
-}
+document.getElementById('tipsDismiss').addEventListener('click', () => {
+    state.tipsDismissed = true;
+    localStorage.setItem('tipsDismissed', 'true');
+    document.getElementById('tipsSection').style.display = 'none';
+});
 
-function checkPracticePrompt() {
-    const history = state.history;
-    if (history.length < 3) return;
+// ---- Practice ----
+function checkPractice() {
+    const h = state.history;
+    if (h.length < 3) { document.getElementById('practiceSection').style.display = 'none'; return; }
 
-    // Count word frequency
-    const wordCount = {};
-    history.forEach(h => {
-        const words = h.source.toLowerCase().split(/\s+/);
-        words.forEach(w => {
-            if (w.length > 2) {
-                wordCount[w] = (wordCount[w] || 0) + 1;
-            }
-        });
-    });
+    const freq = {};
+    h.forEach(r => { r.source.toLowerCase().split(/\s+/).forEach(w => { if (w.length > 2) freq[w] = (freq[w] || 0) + 1; }); });
+    const top = Object.entries(freq).filter(([_, c]) => c >= 3).sort((a, b) => b[1] - a[1])[0];
 
-    // Find words translated 3+ times
-    const frequent = Object.entries(wordCount)
-        .filter(([_, count]) => count >= 3)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3);
-
-    if (frequent.length > 0) {
-        const word = frequent[0][0];
-        const section = document.getElementById('practiceSection');
-        document.getElementById('practicePrompt').textContent =
-            `You've translated "${word}" ${frequent[0][1]} times. Want to practice it?`;
-        section.style.display = 'block';
-
-        document.getElementById('practiceYes').onclick = () => {
-            openChatWithContext(`Practice: ${word}`);
-        };
-        document.getElementById('practiceNo').onclick = () => {
-            section.style.display = 'none';
-        };
+    if (top) {
+        document.getElementById('practicePrompt').textContent = `You've translated "${top[0]}" ${top[1]} times. Want to practice it?`;
+        document.getElementById('practiceSection').style.display = 'block';
+        document.getElementById('practiceYes').onclick = () => openChatWith(`Practice: ${top[0]}`);
+        document.getElementById('practiceNo').onclick = () => document.getElementById('practiceSection').style.display = 'none';
+    } else {
+        document.getElementById('practiceSection').style.display = 'none';
     }
 }
 
 // ============================================================
-// CHAT OVERLAY (for translation results, guides, etc.)
+// CHAT OVERLAY
 // ============================================================
 
 const chatMessages = document.getElementById('chatMessages');
-let chatContext = 'general';
 
-function openChatWithContext(text) {
+function openChatWith(text) {
     openChatOverlay('Translate');
-    handleChatMessage(text);
+    handleChatMsg(text);
 }
 
 function openChatOverlay(title) {
-    const overlay = document.getElementById('chatOverlay');
-    overlay.style.display = 'flex';
+    document.getElementById('chatOverlay').style.display = 'flex';
     document.getElementById('chatTitle').textContent = title;
     chatMessages.innerHTML = '';
     document.getElementById('chatInput').value = '';
     document.getElementById('chatInput').focus();
 }
 
-function closeChatOverlay() {
+function closeChat() {
     document.getElementById('chatOverlay').style.display = 'none';
     chatMessages.innerHTML = '';
 }
 
-document.getElementById('chatBack').addEventListener('click', closeChatOverlay);
+document.getElementById('chatBack').addEventListener('click', closeChat);
 
-function addChatMessage(type, html) {
-    const msg = document.createElement('div');
-    msg.className = `chat-msg chat-msg-${type}`;
-    msg.innerHTML = `<div class="chat-bubble chat-bubble-${type}">${html}</div>`;
-    chatMessages.appendChild(msg);
+function addMsg(type, html) {
+    const el = document.createElement('div');
+    el.className = `chat-msg chat-msg-${type}`;
+    el.innerHTML = `<div class="chat-bubble chat-bubble-${type}">${html}</div>`;
+    chatMessages.appendChild(el);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    return msg;
+    return el;
 }
 
-function addChatTyping() {
+function addTyping() {
     const el = document.createElement('div');
     el.className = 'chat-typing';
     el.id = 'chatTyping';
@@ -404,250 +367,142 @@ function addChatTyping() {
     return el;
 }
 
-function removeChatTyping() {
-    const el = document.getElementById('chatTyping');
-    if (el) el.remove();
-}
+function removeTyping() { const el = document.getElementById('chatTyping'); if (el) el.remove(); }
 
-function setChatHints(chips) {
-    const container = document.getElementById('chatHints');
-    container.innerHTML = chips.map(c =>
-        `<button class="hint-chip" data-action="${escAttr(c.action || '')}" data-text="${escAttr(c.text || '')}">${escHtml(c.label)}</button>`
-    ).join('');
-    container.querySelectorAll('.hint-chip').forEach(btn => {
+function setHints(chips) {
+    const c = document.getElementById('chatHints');
+    c.innerHTML = chips.map(h => `<button class="hint-chip" data-action="${escAttr(h.action || '')}" data-text="${escAttr(h.text || '')}">${escHtml(h.label)}</button>`).join('');
+    c.querySelectorAll('.hint-chip').forEach(btn => {
         btn.addEventListener('click', () => {
             if (btn.dataset.action) handleChatAction(btn.dataset.action);
-            else if (btn.dataset.text) handleChatMessage(btn.dataset.text);
+            else if (btn.dataset.text) handleChatMsg(btn.dataset.text);
         });
     });
 }
 
-// ---- Chat Input ----
+// Chat input
 document.getElementById('chatSend').addEventListener('click', () => {
-    const input = document.getElementById('chatInput');
-    handleChatMessage(input.value.trim());
-    input.value = '';
+    const v = document.getElementById('chatInput').value.trim();
+    if (v) { handleChatMsg(v); document.getElementById('chatInput').value = ''; }
 });
 document.getElementById('chatInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleChatMessage(document.getElementById('chatInput').value.trim());
-        document.getElementById('chatInput').value = '';
+        const v = document.getElementById('chatInput').value.trim();
+        if (v) { handleChatMsg(v); document.getElementById('chatInput').value = ''; }
     }
 });
 
-async function handleChatMessage(text) {
-    if (!text || !text.trim()) return;
-    addChatMessage('user', escHtml(text));
+async function handleChatMsg(text) {
+    if (!text) return;
+    addMsg('user', escHtml(text));
     Sound.play('send');
-
-    if (isQuestion(text)) {
-        await handleChatQuestion(text);
-    } else {
-        await translateText(text);
-    }
+    if (isQuestion(text)) await handleQuestion(text);
+    else await doTranslate(text);
 }
 
-function isQuestion(text) {
-    const q = text.toLowerCase();
-    return q.startsWith('what') || q.startsWith('how') || q.startsWith('where') ||
-           q.startsWith('when') || q.startsWith('should') || q.startsWith('do ') ||
-           q.startsWith('can ') || q.startsWith('is ') || q.includes('?');
+function isQuestion(t) {
+    const q = t.toLowerCase();
+    return q.startsWith('what') || q.startsWith('how') || q.startsWith('where') || q.startsWith('when') || q.startsWith('should') || q.startsWith('do ') || q.startsWith('can ') || q.startsWith('is ') || q.includes('?');
 }
 
-async function handleChatQuestion(text) {
-    const typing = addChatTyping();
+async function handleQuestion(text) {
+    const typing = addTyping();
     await new Promise(r => setTimeout(r, 600));
-    removeChatTyping();
-
-    const lang = state.destination;
-    const langData = LANGUAGES[lang];
+    removeTyping();
+    const lang = LANGUAGES[state.destination];
     const q = text.toLowerCase();
-
     if (q.includes('tip') || q.includes('gratuity')) {
-        const tips = CULTURAL_TIPS[lang] || [];
-        addChatMessage('buddy', `In ${langData ? langData.country : 'most places'}:<br><br>${tips.length ? tips.map(t => `• ${escHtml(t)}`).join('<br>') : "Research local tipping customs before you go."}`);
+        const tips = CULTURAL_TIPS[state.destination] || [];
+        addMsg('buddy', `In ${lang?.country || 'most places'}:<br><br>${tips.length ? tips.map(t => `• ${escHtml(t)}`).join('<br>') : 'Research local tipping customs.'}`);
     } else if (q.includes('safe') || q.includes('danger')) {
-        addChatMessage('buddy', `Generally safe for tourists, but:<br><br>• Keep belongings close in crowded areas<br>• Save local emergency numbers<br>• Let someone know where you're going<br><br>Emergency button is always ready. 🆘`);
+        addMsg('buddy', `Generally safe, but:<br><br>• Keep belongings close<br>• Save emergency numbers<br>• Let someone know where you're going`);
     } else {
-        addChatMessage('buddy', `Good question! I'm best at translating — try asking me to translate something, or use the prepared phrases.<br><br>For detailed advice, check a travel guide for ${langData ? langData.country : 'your destination'}.`);
+        addMsg('buddy', `Good question! I'm best at translating — try typing something, or use the quick phrases on the dashboard.`);
     }
-
-    setChatHints([
-        { label: '⏱️ First-hour guide', action: 'firsthour' },
-        { label: '🍽️ Restaurant phrases', action: 'context_restaurant' },
-    ]);
+    setHints([{ label: '⏱️ First-hour guide', action: 'firsthour' }, { label: '🍽️ Restaurant phrases', action: 'context_restaurant' }]);
 }
 
-// ---- Translation ----
-async function translateText(text) {
+async function doTranslate(text) {
     const targetLang = state.destination || 'ja';
-    const typing = addChatTyping();
-
+    const typing = addTyping();
     try {
-        const res = await fetch('/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, source_language: 'auto', target_language: targetLang }),
-        });
+        const res = await fetch('/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, source_language: 'auto', target_language: targetLang }) });
         const data = await res.json();
-        removeChatTyping();
-
+        removeTyping();
         if (!res.ok) throw new Error(data.error || 'Translation failed');
 
         state.lastTranslation = data;
-        state.lastContext = data.situation || 'general';
+        if (data.situation && data.situation !== 'general') {
+            state.lastContext = data.situation;
+            renderContext(data.situation);
+        }
 
-        // Track for practice
-        const words = text.toLowerCase().split(/\s+/);
-        words.forEach(w => {
-            if (w.length > 2) {
-                state.practiceCount[w] = (state.practiceCount[w] || 0) + 1;
-            }
-        });
-        localStorage.setItem('practiceCount', JSON.stringify(state.practiceCount));
-
-        // Add to history
-        state.history.unshift({
-            source: data.source_text,
-            target: data.translated_text,
-            from: data.source_language,
-            to: data.target_language,
-            time: Date.now(),
-        });
+        state.history.unshift({ source: data.source_text, target: data.translated_text, from: data.source_language, to: data.target_language, time: Date.now() });
         if (state.history.length > 100) state.history.pop();
         localStorage.setItem('translationHistory', JSON.stringify(state.history));
 
-        // Build response
         let html = `<div class="chat-translation">${escHtml(data.translated_text)}</div>`;
+        const labels = { restaurant: '🍽️ Restaurant', airport: '✈️ Airport', hotel: '🏨 Hotel', shopping: '🛒 Shopping', street: '🗺️ Street', hospital: '🏥 Medical', emergency: '🆘 Emergency' };
+        if (data.situation && data.situation !== 'general') html += `<div class="chat-meta">${labels[data.situation] || data.situation} detected</div>`;
+        html += `<div class="chat-actions"><button class="chat-action" onclick="copyLast()">📋 Copy</button><button class="chat-action" onclick="speakLast()">🔊 Listen</button><button class="chat-action" onclick="saveLast()">⭐ Save</button></div>`;
 
-        if (data.situation && data.situation !== 'general') {
-            const labels = {
-                restaurant: '🍽️ Restaurant', airport: '✈️ Airport', hotel: '🏨 Hotel',
-                shopping: '🛒 Shopping', street: '🗺️ Street', hospital: '🏥 Medical', emergency: '🆘 Emergency',
-            };
-            html += `<div class="chat-meta">${labels[data.situation] || data.situation} detected</div>`;
-        }
-
-        html += `
-            <div class="chat-actions">
-                <button class="chat-action" onclick="copyLastTranslation()">📋 Copy</button>
-                <button class="chat-action" onclick="speakLastTranslation()">🔊 Listen</button>
-                <button class="chat-action" onclick="saveLastTranslation()">⭐ Save</button>
-            </div>
-        `;
-
-        addChatMessage('buddy', html);
+        addMsg('buddy', html);
         Sound.play('receive');
-
-        // Update context section on dashboard
-        if (data.situation && data.situation !== 'general') {
-            setContext(data.situation);
-        }
-
-        // Update practice prompt
-        checkPracticePrompt();
-
-        setChatHints([
-            { label: '🔊 Listen again', action: 'speak' },
-            { label: `🍽️ More ${state.lastContext} phrases`, action: `context_${state.lastContext}` },
-        ]);
-
+        checkPractice();
+        setHints([{ label: '🔊 Listen again', action: 'speak' }, { label: `🍽️ More ${state.lastContext} phrases`, action: `context_${state.lastContext}` }]);
     } catch (err) {
-        removeChatTyping();
-        addChatMessage('buddy', `Hmm, that didn't work. Try again?<br><small style="color:var(--text-muted)">${escHtml(err.message)}</small>`);
+        removeTyping();
+        addMsg('buddy', `Hmm, that didn't work. Try again?<br><small style="color:var(--text-muted)">${escHtml(err.message)}</small>`);
         Sound.play('error');
-        setChatHints([{ label: '🔄 Retry', text: text }]);
+        setHints([{ label: '🔄 Retry', text }]);
     }
 }
 
-// ---- Global action helpers ----
-window.copyLastTranslation = function() {
+// Global helpers
+window.copyLast = () => { if (state.lastTranslation) { navigator.clipboard.writeText(state.lastTranslation.translated_text); showToast('Copied!'); } };
+window.speakLast = () => { if (state.lastTranslation) speakText(state.lastTranslation.translated_text, state.lastTranslation.target_language); };
+window.saveLast = () => {
     if (state.lastTranslation) {
-        navigator.clipboard.writeText(state.lastTranslation.translated_text);
-        showToast('Copied!');
-    }
-};
-window.speakLastTranslation = function() {
-    if (state.lastTranslation) {
-        speakText(state.lastTranslation.translated_text, state.lastTranslation.target_language);
-    }
-};
-window.saveLastTranslation = function() {
-    if (state.lastTranslation) {
-        const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
-        favs.unshift({
-            source: state.lastTranslation.source_text,
-            target: state.lastTranslation.translated_text,
-            from: state.lastTranslation.source_language,
-            to: state.lastTranslation.target_language,
-            time: Date.now(),
-        });
-        if (favs.length > 50) favs.pop();
-        localStorage.setItem('favorites', JSON.stringify(favs));
-        showToast('Saved to phrasebook!');
+        const f = JSON.parse(localStorage.getItem('favorites') || '[]');
+        f.unshift({ source: state.lastTranslation.source_text, target: state.lastTranslation.translated_text, from: state.lastTranslation.source_language, to: state.lastTranslation.target_language, time: Date.now() });
+        if (f.length > 50) f.pop();
+        localStorage.setItem('favorites', JSON.stringify(f));
+        showToast('Saved!');
     }
 };
 
-// ---- Chat Actions ----
-function handleChatAction(action) {
-    switch(action) {
-        case 'firsthour': showFirstHourGuide(); break;
-        case 'allergy': openMedicalProfile(); break;
-        case 'speak':
-            if (state.lastTranslation) speakText(state.lastTranslation.translated_text, state.lastTranslation.target_language);
-            break;
-        case 'copy': window.copyLastTranslation(); break;
-        case 'context_restaurant': setContext('restaurant'); openChatWithContext('Show me restaurant phrases'); break;
-        case 'context_airport': setContext('airport'); openChatWithContext('Show me airport phrases'); break;
-        case 'context_hotel': setContext('hotel'); openChatWithContext('Show me hotel phrases'); break;
-        case 'context_street': setContext('street'); openChatWithContext('Show me street phrases'); break;
-        case 'context_shopping': setContext('shopping'); openChatWithContext('Show me shopping phrases'); break;
-    }
+function handleChatAction(a) {
+    if (a === 'firsthour') showFirstHour();
+    else if (a === 'allergy') openMedical();
+    else if (a === 'speak' && state.lastTranslation) speakText(state.lastTranslation.translated_text, state.lastTranslation.target_language);
+    else if (a.startsWith('context_')) { const ctx = a.replace('context_', ''); renderContext(ctx); openChatWith(`Show me ${ctx} phrases`); }
 }
 
-// ---- First Hour Guide ----
-async function showFirstHourGuide() {
+async function showFirstHour() {
     const lang = state.destination || 'ja';
-    const langData = LANGUAGES[lang];
+    const ld = LANGUAGES[lang];
     const phrases = FIRST_HOUR[lang] || FIRST_HOUR._default;
-
-    openChatOverlay(`${langData.flag} First Hour`);
-
-    let html = `<div class="guide-intro">These are the 5 phrases you'll need in your first hour. Tap to translate.</div>`;
-    html += '<div class="guide-phrases">';
+    openChatOverlay(`${ld.flag} First Hour`);
+    let html = `<div class="guide-intro">The 5 phrases you'll need in your first hour. Tap to hear them.</div><div class="guide-phrases">`;
     phrases.forEach(p => {
-        html += `
-            <div class="guide-phrase" onclick="handleChatMessage('${escAttr(p.local)}')">
-                <div>
-                    <div class="guide-phrase-text">${escHtml(p.local)}</div>
-                    <div class="guide-phrase-en">${escHtml(p.en)}</div>
-                </div>
-                <button class="guide-phrase-play" onclick="event.stopPropagation(); speakText('${escAttr(p.local)}', '${lang}')">🔊</button>
-            </div>
-        `;
+        html += `<div class="guide-phrase" onclick="handleChatMsg('${escAttr(p.local)}')"><div><div class="guide-phrase-text">${escHtml(p.local)}</div><div class="guide-phrase-en">${escHtml(p.en)}</div></div><button class="guide-phrase-play" onclick="event.stopPropagation(); speakText('${escAttr(p.local)}','${lang}')">🔊</button></div>`;
     });
     html += '</div>';
-
-    addChatMessage('buddy', html);
-    setChatHints([
-        { label: '🍽️ Restaurant phrases', action: 'context_restaurant' },
-        { label: '🥜 Allergy card', action: 'allergy' },
-    ]);
+    addMsg('buddy', html);
+    setHints([{ label: '🍽️ Restaurant phrases', action: 'context_restaurant' }, { label: '🥜 Allergy card', action: 'allergy' }]);
 }
+
+// Make handleChatMsg globally accessible for onclick
+window.handleChatMsg = handleChatMsg;
 
 // ---- Speak ----
 async function speakText(text, language) {
     try {
-        const res = await fetch('/speak', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, language }),
-        });
+        const res = await fetch('/speak', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, language }) });
         if (!res.ok) return;
         const blob = await res.blob();
-        const audio = new Audio(URL.createObjectURL(blob));
-        audio.play();
+        new Audio(URL.createObjectURL(blob)).play();
     } catch(e) {}
 }
 
@@ -655,85 +510,65 @@ async function speakText(text, language) {
 // EMERGENCY
 // ============================================================
 
-document.getElementById('emergencyBtn').addEventListener('click', openEmergency);
 document.getElementById('bottomEmergency').addEventListener('click', openEmergency);
 
 function openEmergency() {
     const overlay = document.getElementById('emergencyOverlay');
-    const medical = state.medical;
+    const m = state.medical;
     const lang = state.destination || 'ja';
-    const langData = LANGUAGES[lang];
+    const ld = LANGUAGES[lang];
 
-    document.getElementById('emergencyLangLabel').textContent = `I need help in ${langData?.name || lang}`;
-    document.getElementById('emergencySpeakBtn').innerHTML = `🔊 TAP TO SPEAK IN ${(langData?.name || lang).toUpperCase()}`;
+    document.getElementById('emergencyLangLabel').textContent = `I need help in ${ld?.name || lang}`;
+    document.getElementById('emergencySpeakBtn').innerHTML = `🔊 TAP TO SPEAK IN ${(ld?.name || lang).toUpperCase()}`;
 
-    const medContainer = document.getElementById('emergencyMedical');
-    medContainer.innerHTML = `
-        <div class="emergency-medical-row"><span class="emergency-medical-label">Blood</span><span class="emergency-medical-value">${escHtml(medical.bloodType || 'Not set')}</span></div>
-        <div class="emergency-medical-row"><span class="emergency-medical-label">Allergies</span><span class="emergency-medical-value">${escHtml(medical.allergies || 'Not set')}</span></div>
-        <div class="emergency-medical-row"><span class="emergency-medical-label">Medications</span><span class="emergency-medical-value">${escHtml(medical.medications || 'Not set')}</span></div>
-        <div class="emergency-medical-row"><span class="emergency-medical-label">Contact</span><span class="emergency-medical-value">${escHtml(medical.emergencyContact || 'Not set')}</span></div>
-    `;
+    document.getElementById('emergencyMedical').innerHTML = `
+        <div class="emergency-medical-row"><span class="emergency-medical-label">Blood</span><span class="emergency-medical-value">${escHtml(m.bloodType || 'Not set')}</span></div>
+        <div class="emergency-medical-row"><span class="emergency-medical-label">Allergies</span><span class="emergency-medical-value">${escHtml(m.allergies || 'Not set')}</span></div>
+        <div class="emergency-medical-row"><span class="emergency-medical-label">Medications</span><span class="emergency-medical-value">${escHtml(m.medications || 'Not set')}</span></div>
+        <div class="emergency-medical-row"><span class="emergency-medical-label">Contact</span><span class="emergency-medical-value">${escHtml(m.emergencyContact || 'Not set')}</span></div>`;
 
     overlay.classList.add('active');
 
-    document.getElementById('emergencyBackBtn').onclick = () => overlay.classList.remove('active');
+    document.getElementById('emergencyCloseBtn').onclick = () => overlay.classList.remove('active');
     document.getElementById('emergencySpeakBtn').onclick = async () => {
         const btn = document.getElementById('emergencySpeakBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> Speaking...';
-
+        btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Speaking...';
         let text = 'I need help. This is an emergency.';
-        if (medical.bloodType || medical.allergies || medical.medications) {
+        if (m.bloodType || m.allergies || m.medications) {
             text += ' Medical info: ';
-            if (medical.bloodType) text += 'Blood type: ' + medical.bloodType + '. ';
-            if (medical.allergies) text += 'Allergies: ' + medical.allergies + '. ';
-            if (medical.medications) text += 'Medications: ' + medical.medications + '. ';
-            if (medical.emergencyContact) text += 'Emergency contact: ' + medical.emergencyContact + '. ';
+            if (m.bloodType) text += 'Blood type: ' + m.bloodType + '. ';
+            if (m.allergies) text += 'Allergies: ' + m.allergies + '. ';
+            if (m.medications) text += 'Medications: ' + m.medications + '. ';
+            if (m.emergencyContact) text += 'Emergency contact: ' + m.emergencyContact + '. ';
         }
-
         try {
-            const res = await fetch('/translate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, source_language: 'en', target_language: lang, situation: 'emergency' }),
-            });
+            const res = await fetch('/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, source_language: 'en', target_language: lang, situation: 'emergency' }) });
             const data = await res.json();
             if (res.ok) speakText(data.translated_text, lang);
         } catch(e) {}
-
-        btn.disabled = false;
-        btn.innerHTML = `🔊 TAP TO SPEAK IN ${(langData?.name || lang).toUpperCase()}`;
+        btn.disabled = false; btn.innerHTML = `🔊 TAP TO SPEAK IN ${(ld?.name || lang).toUpperCase()}`;
     };
 }
 
 // ============================================================
-// MEDICAL PROFILE
+// MEDICAL
 // ============================================================
 
-document.getElementById('bottomAllergy').addEventListener('click', openMedicalProfile);
+document.getElementById('bottomAllergy').addEventListener('click', openMedical);
 
-function openMedicalProfile() {
+function openMedical() {
     const modal = document.getElementById('medicalModal');
-    const medical = state.medical;
-
-    document.getElementById('medBloodType').value = medical.bloodType || '';
-    document.getElementById('medAllergies').value = medical.allergies || '';
-    document.getElementById('medMedications').value = medical.medications || '';
-    document.getElementById('medContact').value = medical.emergencyContact || '';
-    document.getElementById('medNotes').value = medical.medicalNotes || '';
-
+    const m = state.medical;
+    document.getElementById('medBloodType').value = m.bloodType || '';
+    document.getElementById('medAllergies').value = m.allergies || '';
+    document.getElementById('medMedications').value = m.medications || '';
+    document.getElementById('medContact').value = m.emergencyContact || '';
+    document.getElementById('medNotes').value = m.medicalNotes || '';
     modal.classList.add('active');
 }
 
-document.getElementById('closeMedical').addEventListener('click', () => {
-    document.getElementById('medicalModal').classList.remove('active');
-});
-document.getElementById('medicalModal').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('medicalModal')) {
-        document.getElementById('medicalModal').classList.remove('active');
-    }
-});
+document.getElementById('closeMedical').addEventListener('click', () => document.getElementById('medicalModal').classList.remove('active'));
+document.getElementById('medicalModal').addEventListener('click', (e) => { if (e.target === document.getElementById('medicalModal')) document.getElementById('medicalModal').classList.remove('active'); });
 
 document.getElementById('saveMedical').addEventListener('click', () => {
     state.medical = {
@@ -749,53 +584,40 @@ document.getElementById('saveMedical').addEventListener('click', () => {
 });
 
 // ============================================================
-// STICKY BOTTOM BAR - Speak button
+// FIRST HOUR (bottom bar)
 // ============================================================
 
-document.getElementById('bottomSpeak').addEventListener('click', () => {
-    openChatOverlay('Speak & Translate');
-    document.getElementById('chatInput').focus();
-});
+document.getElementById('bottomGuide').addEventListener('click', showFirstHour);
 
 // ============================================================
-// VOICE INPUT (dashboard mic button)
+// VOICE INPUT
 // ============================================================
 
 const micBtn = document.getElementById('micBtn');
 let recognition = null;
 
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = false;
-
-    recognition.onresult = (e) => {
-        const text = e.results[0][0].transcript;
-        document.getElementById('translateInput').value = text;
-        micBtn.classList.remove('listening');
-    };
+    recognition.onresult = (e) => { document.getElementById('translateInput').value = e.results[0][0].transcript; micBtn.classList.remove('listening'); };
     recognition.onend = () => micBtn.classList.remove('listening');
     recognition.onerror = () => micBtn.classList.remove('listening');
 }
 
 micBtn.addEventListener('click', () => {
-    if (!recognition) { showToast('Voice input not supported'); return; }
-    if (micBtn.classList.contains('listening')) {
-        recognition.stop();
-        micBtn.classList.remove('listening');
-    } else {
-        const langMap = { ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-PT', ru: 'ru-RU', ar: 'ar-SA', hi: 'hi-IN', th: 'th-TH', vi: 'vi-VN' };
-        recognition.lang = langMap[state.destination] || 'en-US';
+    if (!recognition) { showToast('Voice not supported'); return; }
+    if (micBtn.classList.contains('listening')) { recognition.stop(); micBtn.classList.remove('listening'); }
+    else {
+        const map = { ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', it: 'it-IT', pt: 'pt-PT', ru: 'ru-RU', ar: 'ar-SA', hi: 'hi-IN', th: 'th-TH', vi: 'vi-VN' };
+        recognition.lang = map[state.destination] || 'en-US';
         recognition.start();
         micBtn.classList.add('listening');
     }
 });
 
-// Camera button (placeholder)
-document.getElementById('camBtn').addEventListener('click', () => {
-    showToast('Camera translate coming soon!');
-});
+document.getElementById('camBtn').addEventListener('click', () => showToast('Camera translate coming soon!'));
 
 // ============================================================
 // TRANSLATE BUTTON (dashboard)
@@ -806,243 +628,135 @@ document.getElementById('translateBtn').addEventListener('click', async () => {
     const text = input.value.trim();
     if (!text) return;
 
-    const targetLang = state.destination || 'ja';
     const resultDiv = document.getElementById('translateResult');
     const resultText = document.getElementById('resultText');
-
     resultDiv.style.display = 'block';
     resultText.innerHTML = '<span class="spinner spinner-dark"></span>';
 
     try {
-        const res = await fetch('/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text, source_language: 'auto', target_language: targetLang }),
-        });
+        const res = await fetch('/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, source_language: 'auto', target_language: state.destination || 'ja' }) });
         const data = await res.json();
-
         if (!res.ok) throw new Error(data.error || 'Translation failed');
 
         state.lastTranslation = data;
         resultText.textContent = data.translated_text;
-        resultText.style.fontFamily = LANGUAGES[targetLang] ? 'var(--font-jp), var(--font)' : 'var(--font)';
+        resultText.style.fontFamily = LANGUAGES[state.destination] ? 'var(--font-jp), var(--font)' : 'var(--font)';
 
-        // Update context
-        if (data.situation && data.situation !== 'general') {
-            setContext(data.situation);
-        }
+        if (data.situation && data.situation !== 'general') { state.lastContext = data.situation; renderContext(data.situation); }
 
-        // History
-        state.history.unshift({
-            source: data.source_text,
-            target: data.translated_text,
-            from: data.source_language,
-            to: data.target_language,
-            time: Date.now(),
-        });
+        state.history.unshift({ source: data.source_text, target: data.translated_text, from: data.source_language, to: data.target_language, time: Date.now() });
         if (state.history.length > 100) state.history.pop();
         localStorage.setItem('translationHistory', JSON.stringify(state.history));
-
         Sound.play('receive');
-        checkPracticePrompt();
-
+        checkPractice();
     } catch (err) {
         resultText.textContent = 'Error: ' + err.message;
         Sound.play('error');
     }
 });
 
-document.getElementById('translateInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('translateBtn').click();
-    }
-});
+document.getElementById('translateInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('translateBtn').click(); } });
 
-// Result actions
-document.getElementById('resultCopy').addEventListener('click', window.copyLastTranslation);
-document.getElementById('resultSpeak').addEventListener('click', window.speakLastTranslation);
-document.getElementById('resultSave').addEventListener('click', window.saveLastTranslation);
+document.getElementById('resultCopy').addEventListener('click', window.copyLast);
+document.getElementById('resultSpeak').addEventListener('click', window.speakLast);
+document.getElementById('resultSave').addEventListener('click', window.saveLast);
 
 // ============================================================
-// THEME TOGGLE (header)
+// THEME
 // ============================================================
 
 document.getElementById('themeToggle').addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
     updateThemeUI();
 });
 
 // ============================================================
-// TIPS DISMISS
-// ============================================================
-
-document.getElementById('tipsDismiss').addEventListener('click', () => {
-    state.tipsDismissed = true;
-    localStorage.setItem('tipsDismissed', 'true');
-    document.getElementById('tipsSection').style.display = 'none';
-});
-
-// ============================================================
-// SIDE MENU
+// MENU
 // ============================================================
 
 const menuOverlay = document.getElementById('menuOverlay');
-
 document.getElementById('menuBtn').addEventListener('click', () => menuOverlay.classList.add('open'));
 document.getElementById('menuClose').addEventListener('click', () => menuOverlay.classList.remove('open'));
 menuOverlay.addEventListener('click', (e) => { if (e.target === menuOverlay) menuOverlay.classList.remove('open'); });
 
 document.querySelectorAll('.menu-item').forEach(item => {
     item.addEventListener('click', () => {
-        const action = item.dataset.action;
+        const a = item.dataset.action;
         menuOverlay.classList.remove('open');
-
-        switch(action) {
-            case 'destination':
-                state.destination = null;
-                localStorage.removeItem('mimo_destination');
-                state.tipsDismissed = false;
-                localStorage.removeItem('tipsDismissed');
-                initDashboard();
-                break;
+        switch(a) {
+            case 'destination': state.destination = null; localStorage.removeItem('mimo_destination'); initDashboard(); break;
             case 'phrasebook': showPhrasebook(); break;
-            case 'practice': showPracticeMode(); break;
-            case 'allergy': openMedicalProfile(); break;
-            case 'dietary': openMedicalProfile(); break;
-            case 'medical': openMedicalProfile(); break;
-            case 'firsthour': showFirstHourGuide(); break;
+            case 'practice': showPractice(); break;
+            case 'allergy': case 'dietary': case 'medical': openMedical(); break;
+            case 'firsthour': showFirstHour(); break;
             case 'history': showHistory(); break;
             case 'sound': Sound.toggle(); break;
         }
     });
 });
 
-// ---- Phrasebook ----
 function showPhrasebook() {
     const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
     openChatOverlay('📖 Phrasebook');
-
-    if (favs.length === 0) {
-        addChatMessage('buddy', 'Your phrasebook is empty. Translate things and save them — they\'ll show up here!');
-        setChatHints([]);
-        return;
-    }
-
+    if (!favs.length) { addMsg('buddy', 'Empty! Translate things and save them.'); setHints([]); return; }
     let html = '';
-    favs.slice(0, 10).forEach(f => {
-        html += `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer" onclick="openChatWithContext('${escAttr(f.source)}')">
-            <div style="font-weight:600">${escHtml(f.target)}</div>
-            <div style="color:var(--text-soft);font-size:12px">${escHtml(f.source)}</div>
-        </div>`;
-    });
-
-    addChatMessage('buddy', html);
-    setChatHints([]);
+    favs.slice(0, 10).forEach(f => { html += `<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openChatWith('${escAttr(f.source)}')"><div style="font-weight:600">${escHtml(f.target)}</div><div style="color:var(--text-soft);font-size:12px">${escHtml(f.source)}</div></div>`; });
+    addMsg('buddy', html);
+    setHints([]);
 }
 
-// ---- Practice Mode ----
-function showPracticeMode() {
-    const history = state.history;
+function showPractice() {
     openChatOverlay('🎯 Practice');
-
-    if (history.length < 3) {
-        addChatMessage('buddy', 'Translate a few things first, then I\'ll suggest what to practice!');
-        setChatHints([]);
-        return;
-    }
-
-    // Get most common translations
+    if (state.history.length < 3) { addMsg('buddy', 'Translate a few things first!'); setHints([]); return; }
     const freq = {};
-    history.forEach(h => {
-        freq[h.source] = (freq[h.source] || 0) + 1;
-    });
+    state.history.forEach(h => { freq[h.source] = (freq[h.source] || 0) + 1; });
     const top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
-    let html = '<div class="guide-intro">Here are your most translated phrases. Try to say them without looking!</div>';
-    html += '<div class="guide-phrases">';
-    top.forEach(([phrase, count]) => {
-        html += `<div class="guide-phrase" onclick="handleChatMessage('${escAttr(phrase)}')">
-            <div>
-                <div class="guide-phrase-text">${escHtml(phrase)}</div>
-                <div class="guide-phrase-en">Translated ${count} times</div>
-            </div>
-            <div class="guide-phrase-play" style="background:var(--accent-soft);color:var(--accent);font-size:12px">→</div>
-        </div>`;
-    });
+    let html = '<div class="guide-intro">Your most translated phrases. Try saying them without looking!</div><div class="guide-phrases">';
+    top.forEach(([phrase, count]) => { html += `<div class="guide-phrase" onclick="handleChatMsg('${escAttr(phrase)}')"><div><div class="guide-phrase-text">${escHtml(phrase)}</div><div class="guide-phrase-en">${count} times</div></div><div class="guide-phrase-play" style="background:var(--accent-soft);color:var(--accent)">→</div></div>`; });
     html += '</div>';
-
-    addChatMessage('buddy', html);
-    setChatHints([]);
+    addMsg('buddy', html);
+    setHints([]);
 }
 
-// ---- History ----
 function showHistory() {
     openChatOverlay('🕐 History');
-
-    if (state.history.length === 0) {
-        addChatMessage('buddy', 'No translations yet. Start talking!');
-        setChatHints([]);
-        return;
-    }
-
+    if (!state.history.length) { addMsg('buddy', 'No translations yet.'); setHints([]); return; }
     let html = '';
-    state.history.slice(0, 8).forEach(h => {
-        html += `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;cursor:pointer" onclick="openChatWithContext('${escAttr(h.source)}')">
-            <div style="font-weight:600">${escHtml(h.target)}</div>
-            <div style="color:var(--text-soft);font-size:12px">${escHtml(h.source)}</div>
-        </div>`;
-    });
-
-    addChatMessage('buddy', html);
-    setChatHints([]);
+    state.history.slice(0, 8).forEach(h => { html += `<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openChatWith('${escAttr(h.source)}')"><div style="font-weight:600">${escHtml(h.target)}</div><div style="color:var(--text-soft);font-size:12px">${escHtml(h.source)}</div></div>`; });
+    addMsg('buddy', html);
+    setHints([]);
 }
+
+// Make openChatWith global for onclick handlers
+window.openChatWith = openChatWith;
 
 // ============================================================
 // ONBOARDING
 // ============================================================
 
-(function initOnboarding() {
-    if (localStorage.getItem('onboarding_done')) {
-        document.getElementById('onboardingOverlay').classList.remove('active');
-        return;
-    }
-
+(function() {
+    if (localStorage.getItem('onboarding_done')) { document.getElementById('onboardingOverlay').classList.remove('active'); return; }
     const steps = [
-        { icon: '🌍', title: 'Not just a translator', desc: 'A travel companion that helps you before, during, and after your trip.' },
-        { icon: '💬', title: 'Your travel dashboard', desc: 'Emergency help, cultural tips, quick phrases — all visible, all proactive.' },
-        { icon: '🆘', title: 'Emergency-ready', desc: 'One tap speaks your medical info in the local language. Always visible, always ready.' },
+        { icon: '✈️', title: 'Your travel buddy', desc: 'Not just a translator — cultural tips, quick phrases, and everything you need for your trip.' },
+        { icon: '💡', title: 'Context-aware', desc: 'I detect what you need — restaurant, airport, hotel — and show the right phrases instantly.' },
+        { icon: '🎯', title: 'Always ready', desc: 'First-hour guide, allergy cards, and emergency help — all one tap away.' },
     ];
-
     let step = 0;
     const overlay = document.getElementById('onboardingOverlay');
-
     function render() {
         const s = steps[step];
         document.getElementById('onboardingIcon').textContent = s.icon;
         document.getElementById('onboardingStep').textContent = `Step ${step + 1} of 3`;
         document.getElementById('onboardingTitle').textContent = s.title;
         document.getElementById('onboardingDesc').textContent = s.desc;
-        document.getElementById('onboardingDots').innerHTML = steps.map((_, i) =>
-            `<div class="onboarding-dot ${i === step ? 'active' : ''}"></div>`
-        ).join('');
-        document.getElementById('onboardingBtn').textContent = step === 2 ? 'Get Started' : 'Next';
+        document.getElementById('onboardingDots').innerHTML = steps.map((_, i) => `<div class="onboarding-dot ${i === step ? 'active' : ''}"></div>`).join('');
+        document.getElementById('onboardingBtn').textContent = step === 2 ? "Let's go!" : 'Next';
     }
-
     document.getElementById('onboardingSkip').addEventListener('click', close);
-    document.getElementById('onboardingBtn').addEventListener('click', () => {
-        if (step < 2) { step++; render(); }
-        else close();
-    });
-
-    function close() {
-        overlay.classList.remove('active');
-        localStorage.setItem('onboarding_done', '1');
-    }
-
+    document.getElementById('onboardingBtn').addEventListener('click', () => { if (step < 2) { step++; render(); } else close(); });
+    function close() { overlay.classList.remove('active'); localStorage.setItem('onboarding_done', '1'); }
     overlay.classList.add('active');
     render();
 })();

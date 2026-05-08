@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="app" id="app">
-        <!-- Header -->
+        <!-- Header — warm, inviting, travel-feel -->
         <header class="topbar">
             <div class="topbar-left">
                 <span class="topbar-flag" id="topbarFlag"></span>
@@ -31,72 +31,67 @@
             </div>
         </header>
 
-        <!-- Dashboard (scrollable) -->
+        <!-- Dashboard -->
         <main class="dashboard" id="dashboard">
-            <!-- Welcome / Destination picker (shown when no destination set) -->
+            <!-- Welcome / Destination picker -->
             <div class="section section-welcome" id="welcomeSection">
                 <div class="welcome-card">
-                    <div class="welcome-icon">🌍</div>
-                    <h2>Welcome, traveler</h2>
-                    <p>Where are you headed?</p>
+                    <div class="welcome-emoji">✈️</div>
+                    <h2>Where to next?</h2>
+                    <p>Pick your destination and I'll get everything ready.</p>
                     <div class="dest-grid" id="destGrid"></div>
                 </div>
             </div>
 
-            <!-- The dashboard sections (shown when destination is set) -->
+            <!-- Dashboard content -->
             <div class="dashboard-content" id="dashboardContent" style="display:none">
 
-                <!-- SECTION 1: Emergency -->
-                <div class="section section-emergency" id="emergencySection">
-                    <button class="emergency-card" id="emergencyBtn">
-                        <div class="emergency-pulse"></div>
-                        <span class="emergency-icon">🆘</span>
-                        <span class="emergency-text">Emergency — One Tap Help</span>
-                    </button>
-                </div>
-
-                <!-- SECTION 2: Context Quick Phrases -->
-                <div class="section section-context" id="contextSection">
+                <!-- SECTION 1: Quick Phrases — what you need RIGHT NOW -->
+                <div class="section" id="contextSection">
                     <div class="section-card context-card">
                         <div class="section-header">
                             <span class="section-icon" id="contextIcon">🍽️</span>
-                            <span class="section-title" id="contextTitle">Restaurant detected</span>
+                            <span class="section-title" id="contextTitle">At a restaurant?</span>
+                            <button class="context-switch" id="contextSwitch">Change</button>
                         </div>
-                        <div class="context-phrases" id="contextPhrases">
-                            <!-- horizontal scroll pills -->
-                        </div>
+                        <div class="context-phrases" id="contextPhrases"></div>
                     </div>
                 </div>
 
-                <!-- SECTION 3: Cultural Tips -->
-                <div class="section section-tips" id="tipsSection">
+                <!-- SECTION 2: Cultural Tips — your travel companion -->
+                <div class="section" id="tipsSection">
                     <div class="section-card tips-card">
                         <div class="section-header">
                             <span class="section-icon">💡</span>
-                            <span class="section-title">Things locals want you to know</span>
+                            <span class="section-title">Before you go</span>
                             <button class="tips-dismiss" id="tipsDismiss" aria-label="Dismiss">✕</button>
                         </div>
                         <ul class="tips-list" id="tipsList"></ul>
                     </div>
                 </div>
 
-                <!-- SECTION 4: Translate -->
-                <div class="section section-translate" id="translateSection">
+                <!-- SECTION 3: Translate — the tool -->
+                <div class="section" id="translateSection">
                     <div class="section-card translate-card">
                         <div class="section-header">
                             <span class="section-icon">🗣️</span>
                             <span class="section-title">Translate</span>
                         </div>
-                        <div class="translate-input-row">
-                            <input class="translate-input" id="translateInput" type="text" placeholder="Type something..." autocomplete="off">
-                            <button class="translate-mic" id="micBtn" aria-label="Speak">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                            </button>
-                            <button class="translate-cam" id="camBtn" aria-label="Camera">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                            </button>
+                        <div class="translate-input-wrap">
+                            <input class="translate-input" id="translateInput" type="text" placeholder="Type anything..." autocomplete="off">
+                            <div class="translate-input-actions">
+                                <button class="translate-action-btn" id="micBtn" aria-label="Speak">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                                </button>
+                                <button class="translate-action-btn" id="camBtn" aria-label="Camera">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                </button>
+                            </div>
                         </div>
-                        <button class="translate-btn" id="translateBtn">Translate</button>
+                        <button class="translate-btn" id="translateBtn">
+                            <span>Translate</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
                         <div class="translate-result" id="translateResult" style="display:none">
                             <div class="translate-result-text" id="resultText"></div>
                             <div class="translate-result-actions">
@@ -108,8 +103,8 @@
                     </div>
                 </div>
 
-                <!-- SECTION 5: Practice Prompt -->
-                <div class="section section-practice" id="practiceSection" style="display:none">
+                <!-- SECTION 4: Practice — smart suggestion -->
+                <div class="section" id="practiceSection" style="display:none">
                     <div class="section-card practice-card">
                         <div class="section-header">
                             <span class="section-icon">🎯</span>
@@ -117,37 +112,36 @@
                         </div>
                         <p class="practice-prompt" id="practicePrompt"></p>
                         <div class="practice-actions">
-                            <button class="practice-btn" id="practiceYes">Let's practice</button>
-                            <button class="practice-btn practice-btn-secondary" id="practiceNo">Later</button>
+                            <button class="practice-btn" id="practiceYes">Let's go</button>
+                            <button class="practice-btn practice-btn-ghost" id="practiceNo">Later</button>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Sticky Bottom Bar -->
+        <!-- Sticky Bottom Bar — always accessible, not dominant -->
         <nav class="bottom-bar" id="bottomBar" style="display:none">
-            <button class="bottom-btn bottom-btn-emergency" id="bottomEmergency">
-                <span>🆘</span>
-                <span>Emergency</span>
+            <button class="bottom-btn" id="bottomGuide">
+                <span class="bottom-btn-icon">⏱️</span>
+                <span class="bottom-btn-label">First Hour</span>
             </button>
             <button class="bottom-btn" id="bottomAllergy">
-                <span>📋</span>
-                <span>Allergy</span>
+                <span class="bottom-btn-icon">📋</span>
+                <span class="bottom-btn-label">Allergy</span>
             </button>
-            <button class="bottom-btn" id="bottomSpeak">
-                <span>🗣️</span>
-                <span>Speak</span>
+            <button class="bottom-btn bottom-btn-emergency" id="bottomEmergency">
+                <span class="bottom-btn-icon">🆘</span>
+                <span class="bottom-btn-label">SOS</span>
             </button>
         </nav>
     </div>
 
-    <!-- Chat overlay (when translating or viewing guides) -->
+    <!-- Chat overlay -->
     <div class="chat-overlay" id="chatOverlay" style="display:none">
         <div class="chat-header">
             <button class="chat-back" id="chatBack">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                Back
             </button>
             <span class="chat-title" id="chatTitle">Chat</span>
             <span></span>
@@ -162,7 +156,7 @@
         <div class="chat-hints" id="chatHints"></div>
     </div>
 
-    <!-- Side menu overlay -->
+    <!-- Side menu -->
     <div class="menu-overlay" id="menuOverlay">
         <div class="menu-panel" id="menuPanel">
             <div class="menu-header">
@@ -215,13 +209,15 @@
 
     <!-- Emergency Overlay -->
     <div class="emergency-overlay" id="emergencyOverlay">
-        <h1>HELP</h1>
-        <p id="emergencyLangLabel">I need help</p>
-        <button class="emergency-speak-btn" id="emergencySpeakBtn">
-            🔊 TAP TO SPEAK
-        </button>
-        <div class="emergency-medical" id="emergencyMedical"></div>
-        <button class="emergency-back" id="emergencyBackBtn">← Back</button>
+        <div class="emergency-top">
+            <button class="emergency-close" id="emergencyCloseBtn">✕</button>
+        </div>
+        <div class="emergency-body">
+            <h1>HELP</h1>
+            <p id="emergencyLangLabel">I need help</p>
+            <button class="emergency-speak-btn" id="emergencySpeakBtn">🔊 TAP TO SPEAK</button>
+            <div class="emergency-medical" id="emergencyMedical"></div>
+        </div>
     </div>
 
     <!-- Medical Profile Modal -->
@@ -261,10 +257,21 @@
             <button class="onboarding-skip" id="onboardingSkip">Skip</button>
             <div class="onboarding-icon" id="onboardingIcon">🌍</div>
             <div class="onboarding-step" id="onboardingStep">Step 1 of 3</div>
-            <div class="onboarding-title" id="onboardingTitle">Not just a translator</div>
-            <div class="onboarding-desc" id="onboardingDesc">A travel companion that helps you before, during, and after your trip.</div>
+            <div class="onboarding-title" id="onboardingTitle">Your travel buddy</div>
+            <div class="onboarding-desc" id="onboardingDesc">Not just a translator — cultural tips, quick phrases, and everything you need for your trip.</div>
             <div class="onboarding-dots" id="onboardingDots"></div>
             <button class="onboarding-btn" id="onboardingBtn">Next</button>
+        </div>
+    </div>
+
+    <!-- Context switcher modal -->
+    <div class="modal-overlay" id="contextModal">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <span class="modal-title">Where are you?</span>
+                <button class="modal-close" id="closeContext">✕</button>
+            </div>
+            <div class="context-options" id="contextOptions"></div>
         </div>
     </div>
 
